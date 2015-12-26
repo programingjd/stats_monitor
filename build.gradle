@@ -4,15 +4,15 @@ buildscript {
   }
   dependencies {
     classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.5'
+    classpath 'org.jsoup:jsoup:1.8.3'
   }
 }
 
 group 'info.jdavid.stats.monitor'
-version '1.0'
+version '1.2.0'
 
 apply plugin: 'groovy'
 apply plugin: 'java'
-apply plugin: 'jacoco'
 apply plugin: 'maven-publish'
 apply plugin: 'com.jfrog.bintray'
 
@@ -26,32 +26,60 @@ repositories {
 //  }
 }
 
+configurations {
+  samplesCompile.extendsFrom compile
+  samplesRuntime.extendsFrom runtime
+}
+
+sourceSets {
+  samples {
+    groovy {
+      compileClasspath += main.output
+      runtimeClasspath += main.output
+      srcDir file('src/samples/groovy')
+    }
+  }
+}
+
+task runSystemStatServer(dependsOn: 'samplesClasses', type: JavaExec) {
+  main = 'info.jdavid.server.stats.samples.StatServer'
+  classpath = sourceSets.samples.runtimeClasspath
+  logging.captureStandardOutput LogLevel.LIFECYCLE
+  logging.captureStandardError  LogLevel.ERROR
+}
+
 dependencies {
   compile 'org.codehaus.groovy:groovy-all:2.4.5'
-  compile 'info.jdavid.ok.json:okjson:2.6.2'
-  compile 'info.jdavid.ok.rest:okrest:2.6.2'
-  testCompile group: 'junit', name: 'junit', version: '4.12'
-}
-
-jacoco {
-  reportsDir = file("$buildDir/jacoco/reports")
-}
-
-jacocoTestReport {
-  reports {
-    xml.enabled true
-    csv.enabled false
-    html.enabled true
-  }
+  compile 'info.jdavid.ok.json:okjson:2.6.3'
+  compile 'info.jdavid.ok.rest:okrest:2.6.3'
+  samplesCompile 'com.squareup.okhttp:okhttp:2.6.0'
+  testCompile 'junit:junit:4.12'
 }
 
 test {
-  jacoco {
-    append = false
-    destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
-    classDumpFile = file("$buildDir/jacoco/classpathdumps")
+  doLast {
+    File html = reports.html.entryPoint
+    def doc = org.jsoup.Jsoup.parse(html, 'UTF-8')
+
+    def readme = file('README.md')
+    def badge = { String label, String text, String color ->
+      "https://img.shields.io/badge/_${label}_-_${text}-${color}.png?style=flat"
+    }
+    String v = project.version
+    def download =
+      "https://bintray.com/artifact/download/programingjd/maven/info/jdavid/" +
+      "stats/monitor/stats_monitor/$v/stats_monitor-${v}.jar"
+    readme.readLines().withIndex().collect { line, i ->
+      switch (i) {
+        case 0:
+          return "![jcenter](${badge('jcenter',v,'6688ff')})"
+        case 21: return "[Download](${download}) the latest jar."
+        case 31: return "  <version>${v}</version>"
+        case 44: return "  compile 'info.jdavid.stats.monitor:stats_monitor:${v}'"
+        default: return line
+      }
+    }.join('\n').with { readme.text = it }
   }
-  systemProperty 'https.proptocols', 'TLSv1.2'
 }
 
 task groovydocJar(type: Jar, dependsOn: javadoc) {
@@ -107,6 +135,8 @@ bintray {
     }
   }
 }
+
+tasks.bintrayUpload.dependsOn tasks.check
 
 def getBintrayApiKey() {
   def f = new File("$projectDir/local.properties")

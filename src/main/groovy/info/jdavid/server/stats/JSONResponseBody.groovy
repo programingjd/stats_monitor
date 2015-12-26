@@ -3,12 +3,13 @@ package info.jdavid.server.stats
 import com.squareup.okhttp.MediaType
 import com.squareup.okhttp.ResponseBody
 import info.jdavid.ok.json.Builder
+import info.jdavid.ok.server.MediaTypes
 import okio.Buffer
 import okio.BufferedSource
 
 public class JSONResponseBody extends ResponseBody {
   private final Buffer buffer;
-  private static final MediaType jsonMediaType = MediaType.parse('application/json')
+  private static final MediaType jsonMediaType = MediaTypes.JSON
 
   public JSONResponseBody(List<?> json) { Builder.build(buffer = new Buffer(), json) }
   public JSONResponseBody(Map<String, ?> json) { Builder.build(buffer = new Buffer(), json) }

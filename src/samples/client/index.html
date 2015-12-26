@@ -10,7 +10,13 @@
   <script src="index.js"></script>
 </head>
 <body layout="column">
-  <main layout="column" layout-fill>
+  <main layout="column" layout-fill ng-controller="GroupCtrl">
+    <form>
+      <label for="group">Statistical data group: </label>
+      <select id="group" ng-model="groupIndex">
+        <option ng-repeat="group in groups" value="{{ $index }}">{{ group.name }}
+      </select>
+    </form>
     <chart id="chart"></chart>
   </main>
 </body>

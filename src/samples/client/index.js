@@ -2,6 +2,7 @@
 
   angular.
     module('app', []).
+    controller('GroupCtrl', ['$http', '$q', '$scope', GroupCtrl]).
     directive(
       'chart',
       function() {
@@ -9,16 +10,39 @@
           restrict: 'E',
           template: '<div></div>',
           transclude: true,
-          controller: ['$element', '$http', Chart],
+          controller: ['$element', '$http', '$scope', Chart],
           controllerAs: 'chart'
         }
       }
   );
 
-  function Chart($element, $http) {
-    var seriesOptions = [
-      { name: 'cpu', data: [] }
-    ];
+  function GroupCtrl($http, $q, $scope) {
+    var promise = $http.get('http://localhost:8080/groups.json');
+    promise.then(
+      function(response) {
+        var promises = [];
+        var groups = [];
+        var names = [];
+        response.data.forEach(function(it) {
+          names.push(it);
+          promises.push($http.get('http://localhost:8080/' + it + '/names.json'));
+        });
+        $q.all(promises).then(function(values) {
+          for (var i=0; i<values.length; ++i) {
+            groups.push({ name: names[i], values: values[i].data });
+            $scope.groups = groups;
+            $scope.groupIndex = '0';
+          }
+        });
+      }
+    );
+  }
+
+  function Chart($element, $http, $scope) {
+    var seriesOptions = [];
+    $scope.$watch('groupIndex', function() {
+      loadData();
+    });
     var conf = theme();
     conf.series = seriesOptions;
     conf.chart.renderTo = $element.find('div')[0];
@@ -61,43 +85,79 @@
     conf.rangeSelector.inputEnabled = false;
     conf.rangeSelector.selected = 0;
 
-    var chart = new Highcharts.StockChart(conf);
+    var chart = new Highcharts.StockChart(conf); //new Highcharts.Chart(conf);
+
+    var eventSource = undefined;
 
     function loadData() {
-      var promise = $http.get('http://localhost:8080/values');
-      promise.then(
-        function(response) {
-          console.log('ok');
-          var series1 = chart.series[0];
-          response.data.forEach(function(o) {
-            var x = o['millis'];
-            var y = o['cpu'];
-            console.log('load: ', [x,y]);
-            series1.addPoint([x,y]);
-          });
-        },
-        function(err) { console.log(err); }
-      );
-    }
+      if (eventSource) eventSource.close();
+      var groupIndexStr = $scope.groupIndex;
+      var groups = $scope.groups;
+      if (groupIndexStr !== undefined && groups) {
+        var groupIndex = parseInt(groupIndexStr);
+        var group = groups[groupIndex].name;
+        var names = groups[groupIndex].values;
+        var series = names.slice();
+        var times = series.shift();
 
-    var eventSource = new EventSource('http://localhost:8080/sse');
-    var onMessage = function(e) {
-      var split = e.data.split(',');
-      var x = parseInt(split[0]);
-      var y = parseFloat(split[1]);
-      console.log('sse: ', [x, y]);
-      chart.series[0].addPoint([x, y], true);
-    };
-    var onOpen = function() {
-      eventSource.addEventListener('message', onMessage);
-    };
-    eventSource.addEventListener('open', onOpen);
-    eventSource.addEventListener('error', function(err) {
-      console.log(err);
-      eventSource.removeEventListener('open', onOpen);
-      eventSource.removeEventListener('message', onMessage);
-      eventSource.close();
-    })
+        var promise = $http.get('http://localhost:8080/' + group + '/values.json');
+        promise.then(
+          function (response) {
+            var arr = [];
+            series.forEach(function() { arr.push([]); });
+            response.data.forEach(function (o) {
+              for (var i=0; i<series.length; ++i) {
+                var key = series[i];
+                arr[i].push([o[times], o[key]]);
+              }
+            });
+            (function() {
+              var n = chart.series.length;
+              var i;
+              var cur;
+              var navigator;
+              for (i=n-1; i>-1; --i) {
+                cur = chart.series[i];
+                if (cur.name.toLowerCase() == 'navigator') {
+                  navigator = cur;
+                }
+                else {
+                  cur.remove(false);
+                }
+              }
+              for (i=0; i<series.length; ++i) {
+                chart.addSeries({ name: series[i], data: arr[i]}, false);
+              }
+              if (navigator) navigator.setData(arr[0]);
+              chart.redraw();
+            }());
+
+            eventSource = new EventSource('http://localhost:8080/' + group + '/sse');
+            var onMessage = function (e) {
+              var split = e.data.split(',');
+              var x = parseInt(split[0]);
+              var y = parseFloat(split[1]);
+              console.log('sse: ', [x, y]);
+              chart.series[0].addPoint([x, y], true);
+            };
+            var onOpen = function () {
+              eventSource.addEventListener('message', onMessage);
+            };
+            eventSource.addEventListener('open', onOpen);
+            eventSource.addEventListener('error', function (err) {
+              console.log(err);
+              // uncomment to prevent auto reconnects
+              //eventSource.removeEventListener('open', onOpen);
+              //eventSource.removeEventListener('message', onMessage);
+              //eventSource.close();
+            })
+          },
+          function (err) {
+            console.log(err);
+          }
+        );
+      }
+    }
   }
 
   function theme() {
@@ -112,10 +172,10 @@
         "#55bf3b", "#df5353", "#7798bf", "#aaeeee"
       ],
       title: {
-      style: {
-        color: '#e0e0e3'
-      }
-    },
+        style: {
+          color: '#e0e0e3'
+        }
+      },
       subtitle: {
         style: {
           color: '#e0e0e3'
@@ -135,7 +195,8 @@
           style: {
             color: '#a0a0a3'
           }
-        }
+        },
+        minRange: 60000,
       },
       yAxis: {
         labels: {
@@ -250,10 +311,10 @@
             borderColor: '#aaa'
         },
         outlineColor: '#ccc',
-          maskFill: 'rgba(255, 255, 255, 0.1)',
-          series: {
+        maskFill: 'rgba(255, 255, 255, 0.1)',
+        series: {
           color: '#7798bf',
-            lineColor: '#a6c7ed'
+          lineColor: '#a6c7ed'
         },
         xAxis: {
           labels: {

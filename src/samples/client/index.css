@@ -10,3 +10,20 @@ body {
   font-size: 2vw;
   padding: 5vmin;
 }
+form {
+  margin: 10px;
+  font-size: 0.75em;
+  color: #f66;
+}
+select#group {
+  appearance: none;
+  background: #48484a;
+  margin: 0 1em;
+  padding: 0.1em 0.25em;
+  border: 0;
+}
+select#group, select#group option {
+  color: #ccc;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.5vw;
+}
