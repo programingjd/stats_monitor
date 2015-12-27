@@ -21,12 +21,11 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 @CompileStatic
-public abstract class AbstractStatServer {
+public abstract class AbstractStatServer extends RestServer {
 
   /**
    * Returns the directory where the stats are saved.<br>
    * Stats are saved in one file for each day in that directory.<br>
-   * This is called in the constructor, so it should not use any variable from the implementing class.
    * @return the directory or null to keep the default (the current directory).
    */
   protected abstract File getStatsFileDirectory()
@@ -35,14 +34,12 @@ public abstract class AbstractStatServer {
    * Returns the list of statistical group (keys).<br>
    * You can separate statistics into groups. Each group has its own key (String). The key is used as the
    * file name extension for the stats files.<br>
-   * This is called before the constructor, so it should not use any variable from the implementing class.
    * @return the list of group keys, or null to keep the default (one group with the key: "stats").
    */
   protected abstract List<String> getGroupKeys()
 
   /**
    * Returns the ordered list of stat names for the group with the specified key.<br>
-   * This is called before the constructor, so it should not use any variable from the implementing class.
    * @param key the group key.
    * @return the list of column names.
    */
@@ -50,9 +47,8 @@ public abstract class AbstractStatServer {
 
   /**
    * Returns the looping period (time between each loop execution) for the group with the specified key.<br>
-   * This is called before the constructor, so it should not use any variable from the implementing class.
    * @param key the group key.
-   * @return the event period in seconds.
+   * @return the event period in seconds, or -1 if you want to use the default (60 secs).
    */
   protected abstract int getEventPeriod(final String key)
 
@@ -65,80 +61,28 @@ public abstract class AbstractStatServer {
   protected abstract List<? extends Number> getStatValues(final String key)
 
 
-  private static class FixedThreadPoolDispatcher implements Dispatcher {
-    private ExecutorService mExecutors = null;
-    @Override public void start() { mExecutors = Executors.newFixedThreadPool(1); }
-    @Override public void dispatch(final HttpServer.Request request) {
-      mExecutors.execute(new Runnable() { @Override public void run() { request.serve(); } });
-    }
-    @Override public void shutdown() {
-      try {
-        mExecutors.awaitTermination(5, TimeUnit.SECONDS);
-      }
-      catch (final InterruptedException ignore) {}
-      mExecutors.shutdownNow();
-    }
-  }
-
   private static final DateFormat format = new SimpleDateFormat('yyyyMMdd')
   private static final String keyRegex = '[0-9a-zA-Z]+'
 
-  private static class StatsEventSource extends Response.SSE.DefaultEventSource {
-    public final AtomicBoolean stopped = new AtomicBoolean(false);
-    public StatsEventSource(final AbstractStatServer server, final String key) {
-      final long period = server.getEventPeriod(key)
-      Thread.start {
-        while (!stopped.get()) {
-          long t = System.currentTimeMillis()
-          final List<Number> values = server.getStatValues(key)
-          if (values != null) values.join(',').with {
-            write(it)
-            final File f = new File(server.dir, "${format.format(new Date())}.${key}")
-            if (!f.exists() && !f.createNewFile()) {
-              println("Cannot create file: " + f.canonicalPath)
-              println("Please fix the permissions")
-            }
-            f.append(it)
-            f.append('\n')
-          }
-          final wait = period * 1000 - (System.currentTimeMillis() - t)
-          if (wait > 0) Thread.sleep(wait)
-        }
-      }
+  private static File getDefaultFileDirectory() { new File('.').canonicalFile.parentFile }
+
+  private Map<String, StatsEventSource> eventSources = [:]
+
+  @Override protected Dispatcher createDefaultDispatcher() { new FixedThreadPoolDispatcher() }
+
+  @Override protected void setup() {
+    super.setup()
+    final File dir = (getStatsFileDirectory() ?: getDefaultFileDirectory()).with {
+      if ((!exists() && !mkdirs()) || !isDirectory()) throw new IllegalArgumentException()
+      return it
     }
-  }
-
-  private final List<String> keys = (getGroupKeys() ?: ['stats']).findAll {
-    if (it ==~ keyRegex) return true
-    throw new IllegalArgumentException("Invalid key: $it")
-  }
-
-  private final Map<String, StatsEventSource> eventSources =
-    keys.collectEntries { [ (it): new StatsEventSource(this, it) ] }
-
-  protected final RestServer server = new RestServer() {
-    @Override void shutdown() {
-      eventSources.each { it.value.stopped.set(true) }
-      super.shutdown()
+    final List<String> keys = (getGroupKeys() ?: ['stats']).findAll {
+      if (it ==~ keyRegex) return true
+      throw new IllegalArgumentException("Invalid key: $it")
     }
-  }.with {
-    port(8080).dispatcher(new FixedThreadPoolDispatcher())
-    return it
-  }
+    eventSources.putAll(keys.collectEntries { [ (it): new StatsEventSource(this, dir, it) ] })
 
-  private static File getDefaultFileDirectory() {
-    return new File('.').canonicalFile.parentFile
-  }
-
-  private final File dir = (getStatsFileDirectory() ?: getDefaultFileDirectory()).with {
-    if (!exists() && !dir.mkdirs()) throw new IllegalArgumentException()
-    return it
-  }
-
-  public AbstractStatServer() {
-    if (dir == null || !dir.isDirectory()) throw new IllegalArgumentException()
-
-    server.get('/groups[.](json|csv)') { final Buffer body, final Headers headers,
+    get('/groups[.](json|csv)') { final Buffer body, final Headers headers,
                                          final List<String> captures ->
       final Response.Builder builder = new Response.Builder().
         statusLine(StatusLines.OK).
@@ -157,7 +101,7 @@ public abstract class AbstractStatServer {
       }
       return builder.build()
     }
-    server.get("/(${keyRegex})/sse") { final Buffer body, final Headers headers,
+    get("/(${keyRegex})/sse") { final Buffer body, final Headers headers,
                                        final List<String> captures ->
       final String key = captures[0]
       return keys.contains(key) ?
@@ -165,7 +109,7 @@ public abstract class AbstractStatServer {
                               eventSources[key]) as Response :
              new Response.Builder().statusLine(StatusLines.NOT_FOUND).noBody().build()
     }
-    server.get("/(${keyRegex})/names[.](json|csv)") { final Buffer body,
+    get("/(${keyRegex})/names[.](json|csv)") { final Buffer body,
                                                       final Headers headers,
                                                       final List<String> captures ->
       final String key = captures[0]
@@ -189,7 +133,7 @@ public abstract class AbstractStatServer {
       }
       return builder.build()
     }
-    server.get("/(${keyRegex})/values[.](json|csv)") { final Buffer body,
+    get("/(${keyRegex})/values[.](json|csv)") { final Buffer body,
                                                        final Headers headers,
                                                        final List<String> captures ->
       final String key = captures[0]
@@ -250,6 +194,37 @@ public abstract class AbstractStatServer {
     }
   }
 
+  @Override public final void shutdown() {
+    eventSources.each { it.value.stopped.set(true) }
+    super.shutdown()
+  }
+
+  private static class StatsEventSource extends Response.SSE.DefaultEventSource {
+    public final AtomicBoolean stopped = new AtomicBoolean(false)
+    public StatsEventSource(final AbstractStatServer server, final File dir, final String key) {
+      final long p = server.getEventPeriod(key)
+      final long period = p > 0 ? p : 60L
+      Thread.start {
+        while (!stopped.get()) {
+          long t = System.currentTimeMillis()
+          final List<Number> values = server.getStatValues(key)
+          if (values != null) values.join(',').with {
+            write(it)
+            final File f = new File(dir, "${format.format(new Date())}.${key}")
+            if (!f.exists() && !f.createNewFile()) {
+              println("Cannot create file: " + f.canonicalPath)
+              println("Please fix the permissions")
+            }
+            f.append(it)
+            f.append('\n')
+          }
+          final wait = period * 1000 - (System.currentTimeMillis() - t)
+          if (wait > 0) Thread.sleep(wait)
+        }
+      }
+    }
+  }
+
   private static class CombinedSource implements Source {
     private final Source source1
     private final Source source2
@@ -276,6 +251,21 @@ public abstract class AbstractStatServer {
     @Override Timeout timeout() { Timeout.NONE }
     @Override void close() throws IOException {
       try { source1.close() } finally { source2.close() }
+    }
+  }
+
+  private static class FixedThreadPoolDispatcher implements Dispatcher {
+    private ExecutorService mExecutors = null;
+    @Override public void start() { mExecutors = Executors.newFixedThreadPool(1); }
+    @Override public void dispatch(final HttpServer.Request request) {
+      mExecutors.execute(new Runnable() { @Override public void run() { request.serve(); } });
+    }
+    @Override public void shutdown() {
+      try {
+        mExecutors.awaitTermination(5, TimeUnit.SECONDS);
+      }
+      catch (final InterruptedException ignore) {}
+      mExecutors.shutdownNow();
     }
   }
 

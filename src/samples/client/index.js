@@ -10,7 +10,7 @@
           restrict: 'E',
           template: '<div></div>',
           transclude: true,
-          controller: ['$element', '$http', '$scope', Chart],
+          controller: ['$element', '$attrs', '$http', '$scope', Chart],
           controllerAs: 'chart'
         }
       }
@@ -31,18 +31,20 @@
           for (var i=0; i<values.length; ++i) {
             groups.push({ name: names[i], values: values[i].data });
             $scope.groups = groups;
-            $scope.groupIndex = '0';
+            $scope.groupIndex1 = '0';
+            $scope.groupIndex2 = '1';
           }
         });
       }
     );
   }
 
-  function Chart($element, $http, $scope) {
+  function Chart($element, $attrs, $http, $scope) {
     var seriesOptions = [];
-    $scope.$watch('groupIndex', function() {
-      loadData();
-    });
+    $attrs.$observe('group', function() { loadData(); });
+    //$scope.$watch('groupIndex', function() {
+    //  loadData();
+    //});
     var conf = theme();
     conf.series = seriesOptions;
     conf.chart.renderTo = $element.find('div')[0];
@@ -91,7 +93,7 @@
 
     function loadData() {
       if (eventSource) eventSource.close();
-      var groupIndexStr = $scope.groupIndex;
+      var groupIndexStr = $attrs['group'];  // $scope.groupIndex;
       var groups = $scope.groups;
       if (groupIndexStr !== undefined && groups) {
         var groupIndex = parseInt(groupIndexStr);

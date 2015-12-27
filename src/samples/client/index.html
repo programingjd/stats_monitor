@@ -12,12 +12,19 @@
 <body layout="column">
   <main layout="column" layout-fill ng-controller="GroupCtrl">
     <form>
-      <label for="group">Statistical data group: </label>
-      <select id="group" ng-model="groupIndex">
+      <label for="group1">Statistical data group: </label>
+      <select id="group1" ng-model="groupIndex1">
         <option ng-repeat="group in groups" value="{{ $index }}">{{ group.name }}
       </select>
     </form>
-    <chart id="chart"></chart>
+    <chart id="chart" group="{{ groupIndex1 }}"></chart>
+    <form>
+      <label for="group2">Statistical data group: </label>
+      <select id="group2" ng-model="groupIndex2">
+        <option ng-repeat="group in groups" value="{{ $index }}">{{ group.name }}
+      </select>
+    </form>
+    <chart id="chart" group="{{ groupIndex2 }}"></chart>
   </main>
 </body>
 </html>

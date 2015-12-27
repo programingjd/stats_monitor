@@ -1,7 +1,7 @@
 package info.jdavid.server.stats.samples
 
 import com.squareup.okhttp.OkHttpClient
-import com.squareup.okhttp.Request
+import com.squareup.okhttp.Request.Builder
 import com.squareup.okhttp.Response
 import groovy.transform.CompileStatic
 import info.jdavid.server.stats.AbstractStatServer
@@ -17,10 +17,10 @@ import java.util.concurrent.TimeUnit
 public class StatServer extends AbstractStatServer {
 
   private static OkHttpClient client = new OkHttpClient().with { setConnectTimeout(2, TimeUnit.SECONDS); it }
-  private static Map<String, Request> requests = [
-    google: new Request.Builder().url('http://google.com').build(),
-    yahoo: new Request.Builder().url('http://yahoo.com').build(),
-    bing: new Request.Builder().url('http://bing.com').build(),
+  private static Map<String, com.squareup.okhttp.Request> requests = [
+    google: new Builder().url('http://google.com').build(),
+    yahoo: new Builder().url('http://yahoo.com').build(),
+    bing: new Builder().url('http://bing.com').build(),
   ]
 
   private static Map<String, ? extends Map<String, ?>> groups = [
@@ -82,11 +82,11 @@ public class StatServer extends AbstractStatServer {
   private static StatServer instance = new StatServer()
 
   public static startServer() {
-    instance.server.start()
+    instance.start()
   }
 
   public static stopServer() {
-    instance.server.shutdown()
+    instance.shutdown()
   }
 
   public static void main(String[] args) {
