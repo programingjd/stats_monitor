@@ -137,10 +137,15 @@
             eventSource = new EventSource('http://localhost:8080/' + group + '/sse');
             var onMessage = function (e) {
               var split = e.data.split(',');
+              var n = split.length;
               var x = parseInt(split[0]);
-              var y = parseFloat(split[1]);
-              console.log('sse: ', [x, y]);
-              chart.series[0].addPoint([x, y], true);
+              (function() {
+                for (var i=1; i<n; ++i) {
+                  var y = parseFloat(split[i]);
+                  chart.series[i-1].addPoint([x, y], false);
+                }
+              }());
+              chart.redraw();
             };
             var onOpen = function () {
               eventSource.addEventListener('message', onMessage);
