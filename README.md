@@ -1,4 +1,4 @@
-![jcenter](https://img.shields.io/badge/_jcenter_-_1.4.0-6688ff.png?style=flat)
+![jcenter](https://img.shields.io/badge/_jcenter_-_2.0.0-6688ff.png?style=flat)
 
 # stats_monitor
 This module includes the following:
@@ -19,7 +19,7 @@ This module includes the following:
 The maven artifacts are on [Bintray](https://bintray.com/programingjd/maven/info.jdavid.stats.monitor/view)
 and [jcenter](https://bintray.com/search?query=info.jdavid.stats.monitor).
 
-[Download](https://bintray.com/artifact/download/programingjd/maven/info/jdavid/stats/monitor/stats_monitor/1.4.0/stats_monitor-1.4.0.jar) the latest jar.
+[Download](https://bintray.com/artifact/download/programingjd/maven/info/jdavid/stats/monitor/stats_monitor/2.0.0/stats_monitor-2.0.0.jar) the latest jar.
 
 __Maven__
 
@@ -29,7 +29,7 @@ Include [those settings](https://bintray.com/repo/downloadMavenRepoSettingsFile/
 <dependency>
   <groupId>info.jdavid.stats.monitor</groupId>
   <artifactId>stats_monitor</artifactId>
-  <version>1.4.0</version>
+  <version>2.0.0</version>
 </dependency>
 ```
 __Gradle__
@@ -42,7 +42,7 @@ repositories {
 ```
 ```
 dependencies {
-  compile 'info.jdavid.stats.monitor:stats_monitor:1.4.0'
+  compile 'info.jdavid.stats.monitor:stats_monitor:2.0.0'
 }
 ```
 

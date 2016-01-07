@@ -1,8 +1,8 @@
 package info.jdavid.server.stats.samples
 
-import com.squareup.okhttp.OkHttpClient
-import com.squareup.okhttp.Request.Builder
-import com.squareup.okhttp.Response
+import okhttp3.OkHttpClient
+import okhttp3.Request.Builder
+import okhttp3.Response
 import groovy.transform.CompileStatic
 import info.jdavid.server.stats.AbstractStatServer
 import okio.Buffer
@@ -16,8 +16,8 @@ import java.util.concurrent.TimeUnit
 @CompileStatic
 public class StatServer extends AbstractStatServer {
 
-  private static OkHttpClient client = new OkHttpClient().with { setConnectTimeout(2, TimeUnit.SECONDS); it }
-  private static Map<String, com.squareup.okhttp.Request> requests = [
+  private static OkHttpClient client = new OkHttpClient.Builder().connectTimeout(2, TimeUnit.SECONDS).build()
+  private static Map<String, okhttp3.Request> requests = [
     google: new Builder().url('http://google.com').build(),
     yahoo: new Builder().url('http://yahoo.com').build(),
     bing: new Builder().url('http://bing.com').build(),
@@ -29,6 +29,7 @@ public class StatServer extends AbstractStatServer {
       period: 1,
       values: { ->
         final long t = System.currentTimeMillis()
+        //noinspection UnnecessaryQualifiedReference
         def os = ManagementFactory.getPlatformMXBean(com.sun.management.OperatingSystemMXBean.class)
         return [t as Number, os.systemCpuLoad as Number]
       }
@@ -85,6 +86,7 @@ public class StatServer extends AbstractStatServer {
     instance.start()
   }
 
+  @SuppressWarnings("GroovyUnusedDeclaration")
   public static stopServer() {
     instance.shutdown()
   }

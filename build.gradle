@@ -9,7 +9,7 @@ buildscript {
 }
 
 group 'info.jdavid.stats.monitor'
-version '1.5.0'
+version '2.0.0'
 
 apply plugin: 'groovy'
 apply plugin: 'java'
@@ -50,9 +50,9 @@ task runSystemStatServer(dependsOn: 'samplesClasses', type: JavaExec) {
 
 dependencies {
   compile 'org.codehaus.groovy:groovy-all:2.4.5'
-  compile 'info.jdavid.ok.json:okjson:2.7.0'
-  compile 'info.jdavid.ok.rest:okrest:2.7.0'
-  samplesCompile 'com.squareup.okhttp:okhttp:2.7.0'
+  compile 'info.jdavid.ok.json:okjson:3.0.0'
+  compile 'info.jdavid.ok.rest:okrest:3.0.0'
+  samplesCompile 'com.squareup.okhttp3:okhttp:3.0.0-RC1'
   testCompile 'junit:junit:4.12'
 }
 

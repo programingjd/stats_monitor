@@ -1,6 +1,6 @@
 package info.jdavid.server.stats
 
-import com.squareup.okhttp.Headers
+import okhttp3.Headers
 import groovy.transform.CompileStatic
 import info.jdavid.ok.rest.RestServer
 import info.jdavid.ok.server.Dispatcher
@@ -257,6 +257,7 @@ public abstract class AbstractStatServer extends RestServer {
   private static class FixedThreadPoolDispatcher implements Dispatcher {
     private ExecutorService mExecutors = null;
     @Override public void start() { mExecutors = Executors.newFixedThreadPool(1); }
+    @SuppressWarnings("UnnecessaryQualifiedReference")
     @Override public void dispatch(final HttpServer.Request request) {
       mExecutors.execute(new Runnable() { @Override public void run() { request.serve(); } });
     }

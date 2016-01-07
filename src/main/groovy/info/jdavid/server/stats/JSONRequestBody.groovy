@@ -1,7 +1,7 @@
 package info.jdavid.server.stats
 
-import com.squareup.okhttp.MediaType
-import com.squareup.okhttp.RequestBody
+import okhttp3.MediaType
+import okhttp3.RequestBody
 import info.jdavid.ok.json.Builder
 import info.jdavid.ok.server.MediaTypes
 import okio.Buffer
