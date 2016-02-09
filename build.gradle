@@ -3,13 +3,13 @@ buildscript {
     jcenter()
   }
   dependencies {
-    classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.5'
+    classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6'
     classpath 'org.jsoup:jsoup:1.8.3'
   }
 }
 
 group 'info.jdavid.stats.monitor'
-version '2.0.0'
+version '2.1.0'
 
 apply plugin: 'groovy'
 apply plugin: 'java'
@@ -50,9 +50,9 @@ task runSystemStatServer(dependsOn: 'samplesClasses', type: JavaExec) {
 
 dependencies {
   compile 'org.codehaus.groovy:groovy-all:2.4.5'
-  compile 'info.jdavid.ok.json:okjson:3.0.0'
-  compile 'info.jdavid.ok.rest:okrest:3.0.0'
-  samplesCompile 'com.squareup.okhttp3:okhttp:3.0.0-RC1'
+  compile 'info.jdavid.ok.json:okjson:3.1.1'
+  compile 'info.jdavid.ok.rest:okrest:3.1.1'
+  samplesCompile 'com.squareup.okhttp3:okhttp:3.1.1'
   testCompile 'junit:junit:4.12'
 }
 
@@ -124,6 +124,8 @@ bintray {
     websiteUrl = 'https://github.com/programingjd/stats_monitor'
     issueTrackerUrl = 'https://github.com/programingjd/stats_monitor/issues'
     vcsUrl = 'https://github.com/programingjd/stats_monitor.git'
+    githubRepo = 'programingjd/stats_monitor'
+    githubReleaseNotesFile = 'README.md'
     licenses = ['Apache-2.0']
     labels = ['stats','monitor','highstock']
     publicDownloadNumbers = true
