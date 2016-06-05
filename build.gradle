@@ -4,12 +4,12 @@ buildscript {
   }
   dependencies {
     classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6'
-    classpath 'org.jsoup:jsoup:1.8.3'
+    classpath 'org.jsoup:jsoup:1.9.2'
   }
 }
 
 group 'info.jdavid.stats.monitor'
-version '2.1.0'
+version '2.2.0'
 
 apply plugin: 'groovy'
 apply plugin: 'java'
@@ -49,10 +49,10 @@ task runSystemStatServer(dependsOn: 'samplesClasses', type: JavaExec) {
 }
 
 dependencies {
-  compile 'org.codehaus.groovy:groovy-all:2.4.5'
-  compile 'info.jdavid.ok.json:okjson:3.1.1'
-  compile 'info.jdavid.ok.rest:okrest:3.1.1'
-  samplesCompile 'com.squareup.okhttp3:okhttp:3.1.1'
+  compile 'org.codehaus.groovy:groovy-all:2.4.6'
+  compile 'info.jdavid.ok.json:okjson:3.3.1'
+  compile 'info.jdavid.ok.rest:okrest:3.3.1'
+  samplesCompile 'com.squareup.okhttp3:okhttp:3.3.1'
   testCompile 'junit:junit:4.12'
 }
 
