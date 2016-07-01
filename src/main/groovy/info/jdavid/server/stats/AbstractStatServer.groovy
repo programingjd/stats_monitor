@@ -82,13 +82,16 @@ public abstract class AbstractStatServer extends RestServer {
     }
     eventSources.putAll(keys.collectEntries { [ (it): new StatsEventSource(this, dir, it) ] })
 
-    get('/groups[.](json|csv)') { final Buffer body, final Headers headers,
-                                         final List<String> captures ->
+    options("/.*") { final Buffer body, final Headers headers,
+                    final List<String> captures ->
       final Response.Builder builder = new Response.Builder().
-        statusLine(StatusLines.OK).
-        header("Access-Control-Allow-Origin", "*").
-        header("Access-Control-Allow-Methods", "GET").
-        header("Access-Control-Allow-Headers", "Content-Type, Accept")
+        statusLine(StatusLines.OK).cors('*')
+      return builder.build()
+    }
+    get('/groups[.](json|csv)') { final Buffer body, final Headers headers,
+                                  final List<String> captures ->
+      final Response.Builder builder = new Response.Builder().
+        statusLine(StatusLines.OK).cors('*')
       String format = captures[0]
       if (format == 'json') {
         builder.body(new JSONResponseBody(getGroupKeys()))
@@ -102,7 +105,7 @@ public abstract class AbstractStatServer extends RestServer {
       return builder.build()
     }
     get("/(${keyRegex})/sse") { final Buffer body, final Headers headers,
-                                       final List<String> captures ->
+                                final List<String> captures ->
       final String key = captures[0]
       return keys.contains(key) ?
              new Response.SSE(Math.ceil(getEventPeriod(key) * 0.65) as int,
@@ -110,17 +113,14 @@ public abstract class AbstractStatServer extends RestServer {
              new Response.Builder().statusLine(StatusLines.NOT_FOUND).noBody().build()
     }
     get("/(${keyRegex})/names[.](json|csv)") { final Buffer body,
-                                                      final Headers headers,
-                                                      final List<String> captures ->
+                                               final Headers headers,
+                                               final List<String> captures ->
       final String key = captures[0]
       if (!keys.contains(key)) {
         return new Response.Builder().statusLine(StatusLines.NOT_FOUND).noBody().build()
       }
       final Response.Builder builder = new Response.Builder().
-        statusLine(StatusLines.OK).
-        header("Access-Control-Allow-Origin", "*").
-        header("Access-Control-Allow-Methods", "GET").
-        header("Access-Control-Allow-Headers", "Content-Type, Accept")
+        statusLine(StatusLines.OK).cors('*')
       String format = captures[1]
       if (format == 'json') {
         builder.body(new JSONResponseBody(getStatNames(key)))
@@ -134,8 +134,8 @@ public abstract class AbstractStatServer extends RestServer {
       return builder.build()
     }
     get("/(${keyRegex})/values[.](json|csv)") { final Buffer body,
-                                                       final Headers headers,
-                                                       final List<String> captures ->
+                                                final Headers headers,
+                                                final List<String> captures ->
       final String key = captures[0]
       if (!keys.contains(key)) {
         return new Response.Builder().statusLine(StatusLines.NOT_FOUND).noBody().build()
@@ -145,10 +145,7 @@ public abstract class AbstractStatServer extends RestServer {
       cal.add(Calendar.DATE, -1)
       final File f1 = new File(dir, "${format.format(cal.getTime())}.${key}")
       final Response.Builder builder = new Response.Builder().
-        statusLine(StatusLines.OK).
-        header("Access-Control-Allow-Origin", "*").
-        header("Access-Control-Allow-Methods", "GET").
-        header("Access-Control-Allow-Headers", "Content-Type, Accept")
+        statusLine(StatusLines.OK).cors('*')
       String format = captures[1]
       if (format == 'json') {
         final List<String> names = getStatNames(key)
