@@ -68,7 +68,10 @@ public abstract class AbstractStatServer extends RestServer {
 
   private Map<String, StatsEventSource> eventSources = [:]
 
-  @Override protected Dispatcher createDefaultDispatcher() { new FixedThreadPoolDispatcher() }
+  AbstractStatServer() {
+    super()
+    dispatcher(new FixedThreadPoolDispatcher())
+  }
 
   @Override protected void setup() {
     super.setup()
